@@ -52,38 +52,38 @@ SELECT p.product_detail_key, p.branch_id FROM product_details p LEFT JOIN branch
 
 -- Patient transaction dengan branches
 SELECT transaction_key, first_transaction_branch_id FROM patient_transaction_sequence WHERE first_transaction_branch_id IS NULL;
-SELECT pts.transaction_key, pts.first_transaction_branch_id FROM patient_transaction_sequence pts LEFT JOIN branches b ON pts.first_transaction_branch_id = b.branch_id WHERE pts.first_transaction_branch_id IS NOT NULL AND b.branch_id IS NULL;
--- ditemukan 100 data dengan first_transaction_branch_id yang tidak terdapat pada tabel branches
+SELECT COUNT(*) AS total_data FROM patient_transaction_sequence pts LEFT JOIN branches b ON pts.first_transaction_branch_id = b.branch_id WHERE pts.first_transaction_branch_id IS NOT NULL AND b.branch_id IS NULL;
+-- ditemukan 97 data dengan first_transaction_branch_id yang tidak terdapat pada tabel branches
 SELECT DISTINCT first_transaction_branch_id FROM patient_transaction_sequence WHERE first_transaction_branch_id NOT IN ( SELECT branch_id FROM branches );
 -- terdapat data yang melakukan refrensi ke cabang 5,6,7,8 kondisi di tabel branches hanya cabang 1,2,3,4
 -- Penanganan dengan melakukan filtering data pada cabang 1,2,3,4 saja
 
 -- Patients_anonymized dengan Branches 
 SELECT patient_key, registered_branch_id FROM patients_anonymized WHERE registered_branch_id IS NULL;
-SELECT p.patient_key, p.registered_branch_id FROM patients_anonymized p LEFT JOIN branches b ON p.registered_branch_id = b.branch_id WHERE p.registered_branch_id IS NOT NULL AND b.branch_id IS NULL;
--- ditemukan 103 data dengan registered_branch_id yang tidak terdapat pada tabel branches
+SELECT COUNT(*) AS total_data FROM patients_anonymized p LEFT JOIN branches b ON p.registered_branch_id = b.branch_id WHERE p.registered_branch_id IS NOT NULL AND b.branch_id IS NULL;
+-- ditemukan 58 data dengan registered_branch_id yang tidak terdapat pada tabel branches
 SELECT DISTINCT registered_branch_id FROM patients_anonymized WHERE registered_branch_id NOT IN ( SELECT branch_id FROM branches );
 -- terdapat data yang melakukan refrensi ke cabang 5,6,7,8 kondisi di tabel branches hanya cabang 1,2,3,4
 -- Penanganan dengan melakukan filtering data pada cabang 1,2,3,4 saja
 
 -- Payment_details dengan patient_transaction_sequence
 SELECT payment_detail_key, transaction_key FROM payment_details WHERE transaction_key IS NULL;
-SELECT pd.payment_detail_key, pd.transaction_key FROM payment_details pd LEFT JOIN patient_transaction_sequence pts ON pd.transaction_key = pts.transaction_key WHERE pd.transaction_key IS NOT NULL AND pts.transaction_key IS NULL;
--- ditemukan 106 data dengan transaction_key yang tidak terdapat pada tabel patient_transaction_sequence
--- penangananan dengan melakukan filtering agar tidak menggunakan 106 data tersebut
+SELECT COUNT(*) AS total_data FROM payment_details pd LEFT JOIN patient_transaction_sequence pts ON pd.transaction_key = pts.transaction_key WHERE pd.transaction_key IS NOT NULL AND pts.transaction_key IS NULL;
+-- ditemukan 10562 data dengan transaction_key yang tidak terdapat pada tabel patient_transaction_sequence
+-- penangananan dengan melakukan filtering agar tidak menggunakan 7 data tersebut
 SELECT DISTINCT transaction_key FROM payment_details WHERE transaction_key NOT IN ( SELECT transaction_key FROM patient_transaction_sequence );
 
 --  Product dengan Doctors
-SELECT product_detail_key, doctor_id FROM product_details WHERE doctor_id IS NULL;
--- ditemukan 109 data dengan doctor_id kosong 
--- tetap menggunakan 109 data tersebut, karena ada kemungkinan pembelian product tanpa melewaati dokter
+SELECT COUNT(*) AS total_data FROM product_details WHERE doctor_id IS NULL;
+-- ditemukan 25931 data dengan doctor_id kosong 
+-- tetap menggunakan 25931 data tersebut, karena ada kemungkinan pembelian product tanpa melewaati dokter
 SELECT pd.product_detail_key, pd.doctor_id FROM product_details pd LEFT JOIN doctors d ON pd.doctor_id = d.doctor_id WHERE pd.doctor_id IS NOT NULL AND d.doctor_id IS NULL;
  
 -- Patient_transaction_Sequance dengan patients_anonymized
-SELECT transaction_key, patient_key FROM patient_transaction_sequence WHERE patient_key IS NULL;
-SELECT pts.transaction_key, pts.patient_key FROM patient_transaction_sequence pts LEFT JOIN patients_anonymized p ON pts.patient_key = p.patient_key WHERE pts.patient_key IS NOT NULL AND p.patient_key IS NULL;
--- ditemukan 112 data riwayat transaksi yang yang mencatat id pasien yang tidak ada ditabel patients_anonymized
--- dilakukan filter untuk tidak menggunakan 112 data tersebut
+SELECT COUNT(*) AS total_data FROM patient_transaction_sequence WHERE patient_key IS NULL;
+SELECT COUNT(*) AS total_data FROM patient_transaction_sequence pts LEFT JOIN patients_anonymized p ON pts.patient_key = p.patient_key WHERE pts.patient_key IS NOT NULL AND p.patient_key IS NULL;
+-- ditemukan 1 data riwayat transaksi yang yang mencatat id pasien yang tidak ada ditabel patients_anonymized
+-- dilakukan filter untuk tidak menggunakan 1 data tersebut
 
 -- Analisis Performa
 SELECT
@@ -192,10 +192,6 @@ LIMIT 10;
 
 -- Performa Dokter
 SELECT
-    DATE_FORMAT(pd.transaction_date,'%Y-%m') AS periode_bulan,
-    pd.branch_id,
-    b.branch_name,
-
     CASE
         WHEN pd.doctor_id IS NULL
             THEN 'Tanpa Dokter / OTC'
@@ -208,18 +204,15 @@ SELECT
 FROM product_details pd
 
 LEFT JOIN doctors d
-ON pd.doctor_id = d.doctor_id
+    ON pd.doctor_id = d.doctor_id
 
 JOIN branches b
-ON pd.branch_id = b.branch_id
+    ON pd.branch_id = b.branch_id
 
 WHERE pd.transaction_date BETWEEN '2022-10-01' AND '2022-12-31'
-AND pd.branch_id IN (1,2,3,4)
+  AND pd.branch_id IN (1,2,3,4)
 
 GROUP BY
-    periode_bulan,
-    pd.branch_id,
-    b.branch_name,
     nama_dokter
 
 ORDER BY
